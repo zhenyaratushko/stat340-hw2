@@ -1,0 +1,280 @@
+---
+title: "Homework 2"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo=T,eval=T,message=F,warning=F,fig.align='center')
+library(tidyverse)
+```
+
+
+## 1. Independence of Events <small>(8 points, 2 points each)</small>
+
+A fair four-sided die (numbered 1, 2, 3 and 4) is rolled three times. Consider the following three events:
+
+A: "The sum is 6 or less"
+
+B: "The second roll is more than the first"
+
+C: "The sum is odd"
+
+D: "Exactly two of the rolls are the same"
+
+```{r}
+q = expand.grid(1:4, 1:4, 1:4)
+
+qa = q %>%
+  mutate(sum = Var1 + Var2 + Var3) %>%
+  filter(sum <= 6) %>%
+  count()
+  
+qa_prob = qa$n/64
+
+qb = q %>%
+  mutate(sum = Var1 + Var2 + Var3) %>%
+  filter(Var1 > Var2) %>%
+  count()
+
+qb_prob = qb$n/64
+
+qc = q %>%
+  mutate(sum = Var1 + Var2 + Var3) %>%
+  filter(sum == 3 | sum == 5 | sum == 7 | sum == 9 | sum == 11) %>%
+  count()
+  
+qc_prob = qc$n/64
+
+qd = q %>%
+  mutate(sum = Var1 + Var2 + Var3) %>%
+  filter(Var1 == Var2 | Var1 == Var3 | Var2 == Var3) %>%
+  filter(!(Var1 == Var2 & Var2 == Var3)) %>%
+  count() 
+  
+qd_prob = qd$n/64
+```
+a. Are A and B independent?
+
+```{r}
+qa1 = q %>%
+  mutate(sum = Var1 + Var2 + Var3) %>%
+  filter(sum <= 6) %>%
+  filter(Var1 > Var2) %>%
+  count()
+
+qa1_prob_a = qa1$n/64
+qa1_prob_a
+
+qa1_prob_b = qa_prob * qb_prob
+qa1_prob_b
+
+# A and B are not independent, because their individual probabilities are not the same (0.109375 and 0.1171875, respectively).
+```
+
+b. Are C and D independent?
+
+```{r}
+qb1 = q %>%
+  mutate(sum = Var1 + Var2 + Var3) %>%
+  filter(sum == 3 | sum == 5 | sum == 7 | sum == 9 | sum == 11) %>%
+  filter(Var1 == Var2 | Var1 == Var3 | Var2 == Var3) %>%
+  filter(!(Var1 == Var2 & Var2 == Var3)) %>%
+  count() 
+
+qb1_prob_a = qb1$n/64
+qb1_prob_a
+
+qb1_prob_b = qc_prob * qd_prob
+qb1_prob_b
+
+# C and D are independent, because their individual probabilities are the same (0.28125).
+```
+
+c. Are A and C independent?
+
+```{r}
+qc1 = q %>%
+  mutate(sum = Var1 + Var2 + Var3) %>%
+  filter(sum <= 6) %>%
+  filter(sum == 3 | sum == 5 | sum == 7 | sum == 9 | sum == 11) %>%
+  count()
+
+qc1_prob_a = qc1$n/64
+qc1_prob_a
+
+qc1_prob_b = qa_prob * qc_prob
+qc1_prob_b
+
+# A and C are not independent, because their individual probabilities are not the same (0.109375 and 0.15625, respectively).
+```
+
+d. Are B and D independent?
+
+```{r}
+qd1 = q %>%
+  mutate(sum = Var1 + Var2 + Var3) %>%
+  filter(Var1 > Var2) %>%
+  filter(Var1 == Var2 | Var1 == Var3 | Var2 == Var3) %>%
+  filter(!(Var1 == Var2 & Var2 == Var3)) %>%
+  count()
+
+qd1_prob_a = qd1$n/64
+qd1_prob_a
+
+qd1_prob_b = qb_prob * qd_prob
+qd1_prob_b
+
+# B and D are not independent, because their individual probabilities are not the same (0.1875 and 0.2109375, respectively).
+```
+
+
+## 2. Stock Portfolio <small>(8 points, 2 points each)</small>
+
+Consider two stocks. Stock A has a mean annual return of 0.05 and a standard deviation of 0.01. Stock B has a mean annual return of 0.10 and a standard deviation of 0.04. Past data suggests that the prices have a correlation of -0.65.
+You have \$1000 to invest in a portfolio composed of these two stocks. 
+
+a. Suppose you invest \$500 in stock A and \$500 in stock B. What will be the expected return and the standard deviation of your portfolio (in dollars)? 
+*Hint:* $SD(aX+bY) = \sqrt{Var(aX+bY)}= \sqrt{a^2Var(X)+2abCov(X,Y)+b^2Var(Y)}$ and $Cov(X,Y)=\sigma_X \sigma_Y \rho_{XY}$
+
+```{r}
+return_1 = 0.05 * 500
+return_2 = 0.10 * 500
+exp_return = return_1 + return_2
+exp_return
+
+covab = (-0.65)*(.04*.01)
+std_return = sqrt((500*500)*(0.01*0.01) + (500*500)*(0.04*0.04) + 2*500*500*covab)
+std_return
+```
+
+
+b. Give an expression for the standard deviation for a portfolio investing $\$x$ in stock A and $\$1000-x$ in stock B. 
+
+```{r}
+# std = sqrt(x^2)*(0.01)*(0.01) + ((1000-x)*(1000-x)*(0.04*0.04)) + ((2)*(x)*(1000-x)*covab)
+```
+
+
+c. Find the value $x$ that minimizes this standard deviation. 
+
+```{r}
+optimize_sd = function(x) {
+   sqrt(x^2 * 0.01 * 0.01 + (1000-x)^2 * 0.04 * 0.04 + (2 * x * (1000-x) * (-0.65 * 0.04 * 0.01)))
+}
+
+minimizer = optimize(optimize_sd, interval = c(0, 1000))[1]
+minimizer
+```
+
+d. What is the expected return and standard deviation (in dollars) for the portfolio split you chose in part c?
+
+```{r}
+return_a = 0.05 * 837.8378
+return_b = 0.10 * (1000-837.8378)
+return_ab = return_a + return_b
+return_ab
+
+x = 837.8378
+
+covab = (-0.65)*(.04*.01)
+return_std = sqrt(x^2 * 0.01 * 0.01 + (1000-x)^2 * 0.04 * 0.04 + (2 * x * (1000-x) * (-0.65 * 0.04 * 0.01)))
+return_std
+```
+
+## 3. Mousetrap: A Rube Goldberg Machine  <small>(5 points, 1 points each)</small>
+
+Consider the board game Mousetrap. When you trigger the ball needs to 
+
+1. roll down a ramp
+2. be carried up by a hammer
+3. roll  down another ramp
+4. go down a bathtub drain
+5. land on a lever which
+6. sends a diver into a basin which then
+7. causes the trap to descend.
+
+Suppose you can model the success of each component as independent Bernoulli random variables $X_1$ through $X_7$, where the probability of $X_i$ succeeding is $.94$ for each component. 
+
+a. What is the probability that the trap works correctly from beginning to end?
+
+```{r}
+execution_probability = (0.94)^7
+execution_probability
+```
+
+b. If you attempt the trap 15 times during a game, how many times do you expect it to work correctly from beginning to end?
+
+```{r}
+execution_fifteen = execution_probability * 15
+execution_fifteen
+```
+
+c. Suppose you let the marble go: Let $Y$ be the number of components of the trap that work in a row. If one component fails, then you stop counting. Calculate the probability mass function of $Y$. *Hints: $Y$ can have values $0, 1, 2, 3, 4, 5, 6$ or $7$). This is like a Geometric except it does not have infinite support. How can you use this fact to determine the pmf? But what is a 'success' in this context?*
+
+```{r}
+# P(Y = 0) = 0.06
+# P(Y = 1) = (0.94) * 0.06 or 0.0564
+# P(Y = 2) = (0.94^2) * 0.06 or 0.053
+# P(Y = 3) = (0.94^3) * 0.06 or 0.0498
+# P(Y = 4) = (0.94^4) * 0.06 or 0.0468
+# P(Y = 5) = (0.94^5) * 0.06 or 0.044
+# P(Y = 6) = (0.94^6) * 0.06 or 0.0414
+# P(Y = 7) = (0.94^7) or 0.6485
+
+trap_prob = c(0.06, 0.0564, 0.053, 0.0498, 0.0468, 0.044, 0.0414, 0.6485)
+trap_prob
+```
+
+d. Calculate the expected value of $Y$ and its variance. 
+
+```{r}
+exp_trap = sum(trap_prob * 0:7)
+exp_trap
+
+var_trap = sum(trap_prob * (0:7)^2) - exp_trap^2
+var_trap
+```
+
+e. What is $P(Y = 6 | Y \geq 3)$?
+
+```{r}
+prob_a = trap_prob[7]
+prob_b = sum(trap_prob[4:8])
+
+prob_both = prob_a/prob_b
+prob_both
+```
+
+## 4. Bayes Rule with forecasting  <small>(9 points, 3 points each)</small>
+
+Madison, Wisconsin gets about 115 days of precipitation per year (we'll just call it rain for the remainder of this problem, even though it is often snow). Suppose that when it rains, the forecast on Channel 3000 is correct 93% of the time and when it doesn't rain they are correct 87% of the time.
+
+a. How many correctly forecasted days do you expect in a 365 day year? 
+
+```{r}
+correct_days_rain = 0.93 * 115
+correct_days_no_rain = 0.87 * (365-115)
+correct_days_total = correct_days_rain + correct_days_no_rain
+correct_days_total
+```
+
+b. If the forecast calls for rain, what is the likelihood that it actually rains?
+
+```{r}
+prob = (0.93 * (115/365))/(((115/365) * 0.93) + (((365-115)/365) * 0.13))
+prob
+# Bayes Theorem applied: Pr[rain | forecasted] = Pr[forecasted | rain] * Pr(rain) / (Pr[forecasted | rain] * Pr(rain)) + (Pr[forecasted | no rain] * Pr(no rain))
+```
+
+c. Suppose that if the forecast was correct yesterday then it increases the likelihood of correctness today. Specifically, if the forecast was correct yesterday, then the probabilities from part a. increase to .98 and .92 respectively. If the forecast was correct on January 29th, what is the probability it was correct on January 28th? To answer this, let us take it as given that the forecast was **incorrect** on the 27th.
+
+```{r}
+prob_28 = ((0.93 * 115) + (0.87 * (365-115)))/365
+prob_29 = ((0.98 * 115) + (0.92 * (365-115)))/365
+
+prob_both = (prob_29*prob_28)/((prob_29*prob_28) + (prob_28)*(1-prob_28))
+prob_both         
+
+# Bayes Theorem applied: Pr[correct on 28 | correct on 29] = Pr[correct on 29 | correct on 28] * Pr(correct on 28) / (Pr[correct on 29 | correct on 28] * Pr(correct on 28)) + (Pr[correct on 29 | incorrect on 28] * Pr(incorrect on 28))
+```
+
